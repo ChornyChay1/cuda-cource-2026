@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.18)
+project(cuda_lab1 LANGUAGES CUDA)
+
+add_executable(submission src/main.cu)
+set_target_properties(submission PROPERTIES CUDA_STANDARD 17 CUDA_STANDARD_REQUIRED YES)
