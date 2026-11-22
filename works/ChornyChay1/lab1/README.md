@@ -71,10 +71,9 @@ python3 tests/check.py build/submission
 Скрипт использует одинаковые входы для программы и эталона и печатает
 максимальную абсолютную ошибку для каждого столбца. Требуется точное совпадение
 после чтения в FP32. Для SAXPY значение может совпадать с эталоном с FMA или с
-раздельным округлением произведения и суммы. Локально проверены сборка,
-`--help`, пустой вход и обработка ошибок CLI. В имитации запуска потоков
-на CPU все 27 сравнений с NumPy дали нулевую ошибку. Результаты непустых
-входов нужно подтвердить на GPU.
+раздельным округлением произведения и суммы. На Громозеке во всех 27 запусках
+максимальная ошибка для каждой из трёх операций составила `0.0`. Также
+проверены сборка, `--help`, пустой вход и обработка ошибок CLI.
 
 ## Результаты
 
@@ -86,8 +85,10 @@ python3 tests/check.py build/submission
 выделение буферов CPU и GPU. Чтение файла, перекладка входа по столбцам,
 создание событий и запись результата вынесены из замеров цикла.
 
-Воспроизводимый эксперимент ниже использует 30 замеров после трёх прогревов
-на каждой конфигурации. Фактические времена нужно снять на Громозеке.
+Скрипт `benchmark.py` запускает 18 конфигураций: три размера входа,
+три размера блока и два режима доступа. Программа выполняет 30 замеров
+после трёх прогревов на каждой конфигурации. Фактические времена нужно
+снять на Громозеке.
 
 ## Выводы
 
@@ -103,8 +104,9 @@ python3 tests/check.py build/submission
 
 ### Данные
 
-Скрипт `tests/check.py` генерирует данные для проверки. Входы для замеров
-содержат пары FP32 с фиксированным seed 42. NumPy можно установить в
+Скрипт `tests/check.py` генерирует данные для проверки. Скрипт `benchmark.py`
+генерирует пары FP32 с фиксированным seed 42 и удаляет временные файлы
+после завершения. NumPy можно установить в
 активное Python-окружение командой `python3 -m pip install numpy`.
 
 ### Полный запуск
@@ -113,24 +115,5 @@ python3 tests/check.py build/submission
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target submission
 python3 tests/check.py build/submission
-
-python3 - <<'PY'
-from pathlib import Path
-
-import numpy as np
-
-rng = np.random.default_rng(42)
-for n in (256, 65536, 4194304):
-    x = rng.uniform(-100, 100, size=(n, 2)).astype(np.float32)
-    np.savetxt(Path("build") / f"bench-{n}.txt", x, fmt="%.9g", header=f"{n} -0.713", comments="")
-PY
-
-for n in 256 65536 4194304; do
-    for block in 128 256 512; do
-        for mode in coalesced noncoalesced; do
-            ./build/submission --input "build/bench-$n.txt" --output build/bench-output.txt \
-                --mode "$mode" --block-size "$block" --repeats 30
-        done
-    done
-done
+python3 benchmark.py
 ```
