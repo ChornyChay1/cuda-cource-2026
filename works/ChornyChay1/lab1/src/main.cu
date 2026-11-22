@@ -264,18 +264,18 @@ void run(const Options &options, const Input &input) {
     const auto allocationStart = Clock::now();
     float *pointer = nullptr;
     checkCuda(cudaMallocHost(&pointer, inputBytes), "cudaMallocHost(input)");
-    std::unique_ptr<float, FreeHost> hostInput(pointer);
+    std::unique_ptr<float, FreeHost> inputHost(pointer);
     checkCuda(cudaMallocHost(&pointer, outputBytes), "cudaMallocHost(output)");
-    std::unique_ptr<float, FreeHost> hostOutput(pointer);
+    std::unique_ptr<float, FreeHost> outputHost(pointer);
     checkCuda(cudaMalloc(&pointer, inputBytes), "cudaMalloc(input)");
-    std::unique_ptr<float, FreeDevice> deviceInput(pointer);
+    std::unique_ptr<float, FreeDevice> inputDevice(pointer);
     checkCuda(cudaMalloc(&pointer, outputBytes), "cudaMalloc(output)");
-    std::unique_ptr<float, FreeDevice> deviceOutput(pointer);
+    std::unique_ptr<float, FreeDevice> outputDevice(pointer);
     const double allocation = millisecondsSince(allocationStart);
 
     for (std::size_t i = 0; i < count; ++i) {
-        hostInput.get()[i] = input.pairs[2 * i];
-        hostInput.get()[count + i] = input.pairs[2 * i + 1];
+        inputHost.get()[i] = input.pairs[2 * i];
+        inputHost.get()[count + i] = input.pairs[2 * i + 1];
     }
 
     const auto execute = [&](const std::array<Event, 4> *events) {
@@ -288,19 +288,19 @@ void run(const Options &options, const Input &input) {
 
         record(0);
         checkCuda(
-            cudaMemcpyAsync(deviceInput.get(), hostInput.get(), inputBytes, cudaMemcpyHostToDevice),
+            cudaMemcpyAsync(inputDevice.get(), inputHost.get(), inputBytes, cudaMemcpyHostToDevice),
             "cudaMemcpyAsync(H2D)");
         record(1);
         if (options.strided) {
             vectorOperations<true><<<gridSize, options.blockSize>>>(
-                deviceInput.get(), deviceOutput.get(), count, input.alpha);
+                inputDevice.get(), outputDevice.get(), count, input.alpha);
         } else {
             vectorOperations<false><<<gridSize, options.blockSize>>>(
-                deviceInput.get(), deviceOutput.get(), count, input.alpha);
+                inputDevice.get(), outputDevice.get(), count, input.alpha);
         }
         checkCuda(cudaGetLastError(), "vectorOperations launch");
         record(2);
-        checkCuda(cudaMemcpyAsync(hostOutput.get(), deviceOutput.get(), outputBytes,
+        checkCuda(cudaMemcpyAsync(outputHost.get(), outputDevice.get(), outputBytes,
                                   cudaMemcpyDeviceToHost),
                   "cudaMemcpyAsync(D2H)");
         record(3);
@@ -326,7 +326,7 @@ void run(const Options &options, const Input &input) {
         }
         printTimings(samples, allocation, options, count);
     }
-    writeOutput(options.output, hostOutput.get(), count);
+    writeOutput(options.output, outputHost.get(), count);
 }
 
 } // namespace
