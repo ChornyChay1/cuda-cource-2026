@@ -18,7 +18,7 @@
 ### 📚 Лекции
 
 - [Примеры к лекциям на сайте курса](https://comiam.github.io/cuda-cource-2026/lectures/) — схемы, исходники и команды запуска.
-- [Презентации лекций на Google Диске](https://drive.google.com/drive/folders/1nD6wztlwnD9DzYuP7p8BT7sEf7VrR1WM?usp=drive_link).
+- Презентации лекций собраны [в папке курса на Google Диске](https://drive.google.com/drive/folders/1nD6wztlwnD9DzYuP7p8BT7sEf7VrR1WM?usp=drive_link).
 
 ### 📊 Успеваемость
 
